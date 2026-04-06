@@ -7,9 +7,14 @@
 import SwiftUI
 
 struct SettingsRootView: View {
-
+    @Bindable private var viewModel: SettingsViewModel
+    
+    init(viewModel: SettingsViewModel) {
+        self.viewModel = viewModel
+    }
+    
     var body: some View {
-            SettingsView()
+            SettingsView(viewModel: viewModel)
                 .navigationTitle("Настройки")
     }
 }

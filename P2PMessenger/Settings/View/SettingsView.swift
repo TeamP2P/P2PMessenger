@@ -14,16 +14,17 @@ struct SettingsView: View {
     var username = "иван"
     var spaceTaken = 1234
     @State var progress = 0.67
+    @Bindable private var viewModel: SettingsViewModel
+
+    init(viewModel: SettingsViewModel) {
+        self.viewModel = viewModel
+    }
 
     var body: some View {
         List {
             Section {
-                Button {
-
-                } label: {
-                    UserCard(username: username)
-                        .tint(.primary)
-                }
+                UserCard(username: $viewModel.userName)
+                    .tint(.primary)
             } header: {
                 Text("profileUpper")
                     .font(.footnote)
@@ -80,5 +81,5 @@ struct SettingsView: View {
 }
 
 #Preview {
-    SettingsView()
+    SettingsView(viewModel: SettingsViewModel())
 }

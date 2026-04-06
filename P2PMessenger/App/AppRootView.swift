@@ -37,7 +37,7 @@ struct AppRootView: View {
                 }
                 .tag(AppTab.commonChat)
             
-            SettingsRootView()
+            SettingsRootView(viewModel: SettingsViewModel())
                 .tabItem {
                     Label("Настройки", systemImage: "gearshape")
                 }

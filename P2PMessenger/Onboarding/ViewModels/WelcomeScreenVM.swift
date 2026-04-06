@@ -6,6 +6,7 @@
 //
 
 import Observation
+import Foundation
 
 @Observable
 final class WelcomeScreenVM {
@@ -18,7 +19,11 @@ final class WelcomeScreenVM {
 
     private let permissionManager = PermissionManager()
 
-    var userName: String = ""
+    var userName: String = UserDefaults.standard.string(forKey: MPCNetworkConstants.userDefaultsDisplayNameKey) ?? "" {
+        didSet {
+            UserDefaults.standard.set(userName, forKey: MPCNetworkConstants.userDefaultsDisplayNameKey)
+        }
+    }
 
     var permissions: [PermissionItem] {
         [
