@@ -1,22 +1,30 @@
-//
-//  AppRouter.swift
-//  P2PMessenger
-//
-//  Created by Иван Иванов on 02.04.2026.
-//
-
 import SwiftUI
+import SwiftData
 
 struct AppRootView: View {
-    @State private var appRouter = AppRouter()
-    @StateObject private var bluetoothVM = BluetoothStatusViewModel()
-    @Environment(DependencyContainer.self) var container
-    
+    @StateObject private var bluetoothViewModel = BluetoothStatusViewModel()
+    @Environment(DependencyContainer.self) private var container
+    @Query private var profiles: [LocalUserProfile]
+
     var body: some View {
-        TabView(selection: Binding(
-            get: { container.router.selectedTab },
-            set: { container.router.selectedTab = $0 }
-        )) {
+        Group {
+            if hasLocalProfile {
+                mainTabs
+            } else {
+                WelcomeScreenView()
+            }
+        }
+        .fullScreenCover(isPresented: $bluetoothViewModel.isBluetoothOff) {
+            NoBluetoothView()
+        }
+    }
+
+    private var hasLocalProfile: Bool {
+        profiles.first != nil
+    }
+
+    private var mainTabs: some View {
+        TabView(selection: selectedTabBinding) {
             ChatsRootView(
                 viewModel: ChatsRootViewModel(
                     chatListViewModel: ChatsListViewModel(
@@ -24,18 +32,19 @@ struct AppRootView: View {
                     ),
                     chatScreenViewModel: ChatPreviewFixtures.newChat
                 ),
-                router: container.router.chatsRouter)
+                router: container.router.chatsRouter
+            )
             .tabItem {
                 Label("Чаты", systemImage: "message")
             }
             .tag(AppTab.chats)
-            
+
             CommonChatRootView()
                 .tabItem {
                     Label("Общий чат", systemImage: "person.2")
                 }
                 .tag(AppTab.commonChat)
-            
+
             SettingsRootView()
                 .tabItem {
                     Label("Настройки", systemImage: "gearshape")
@@ -43,25 +52,18 @@ struct AppRootView: View {
                 .tag(AppTab.settings)
         }
         .tint(.p2PBlack)
-        .fullScreenCover(isPresented: $bluetoothVM.isBluetoothOff) {
-            NoBluetoothView()
-        }
     }
-    
-    func openBluetoothSettings() {
-        guard let settingsURL = URL(string: "App-Prefs:root=Bluetooth") else {
-            return // UIApplication.openSettingsURLString
-        }
-        
-        if UIApplication.shared.canOpenURL(settingsURL) {
-            UIApplication.shared.open(settingsURL)
-        }
-        
+
+    private var selectedTabBinding: Binding<AppTab> {
+        Binding(
+            get: { container.router.selectedTab },
+            set: { container.router.selectedTab = $0 }
+        )
     }
-    
 }
 
 #Preview {
     AppRootView()
         .environment(DependencyContainer())
+        .modelContainer(for: [LocalUserProfile.self, LocalChat.self, LocalMessage.self], inMemory: true)
 }
