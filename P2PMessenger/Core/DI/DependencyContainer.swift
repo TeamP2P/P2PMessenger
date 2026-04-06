@@ -14,11 +14,16 @@ final class DependencyContainer {
     let notificationService: NotificationServiceProtocol
     @ObservationIgnored
     let router: AppRouter
+    @ObservationIgnored
+    let networkService: MPCNetworkService
     
     
+    @MainActor
     init(notificationService: NotificationServiceProtocol = NotificationService(),
-         router: AppRouter = AppRouter()) {
+         router: AppRouter = AppRouter(),
+         networkService: MPCNetworkService = MPCNetworkService()) {
         self.notificationService = notificationService
         self.router = router
+        self.networkService = networkService
     }
 }

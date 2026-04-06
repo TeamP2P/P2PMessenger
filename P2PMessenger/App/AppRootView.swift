@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct AppRootView: View {
+    let chatViewModel: ChatViewModel
+
     @State private var appRouter = AppRouter()
     @StateObject private var bluetoothVM = BluetoothStatusViewModel()
     @Environment(DependencyContainer.self) var container
@@ -30,9 +32,9 @@ struct AppRootView: View {
             }
             .tag(AppTab.chats)
             
-            CommonChatRootView()
+            CommonChatRootView(chatViewModel: chatViewModel)
                 .tabItem {
-                    Label("Общий чат", systemImage: "person.2")
+                    Label(String(localized: "common_chat_title"), systemImage: "person.2")
                 }
                 .tag(AppTab.commonChat)
             
@@ -62,6 +64,6 @@ struct AppRootView: View {
 }
 
 #Preview {
-    AppRootView()
+    AppRootView(chatViewModel: ChatViewModel())
         .environment(DependencyContainer())
 }

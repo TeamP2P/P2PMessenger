@@ -10,17 +10,22 @@ import SwiftData
 
 @main
 struct P2PMessengerApp: App {
+    @State private var container: DependencyContainer
+    @StateObject private var chatViewModel: ChatViewModel
     
+    @MainActor
     init() {
         _ = BluetoothMonitor.shared
+        let networkService = MPCNetworkService()
+        _container = State(initialValue: DependencyContainer(networkService: networkService))
+        _chatViewModel = StateObject(wrappedValue: ChatViewModel(networkService: networkService))
     }
-    @State private var container = DependencyContainer()
     
     @UIApplicationDelegateAdaptor(AppNotificationDelegate.self) var appDelegate
     
     var body: some Scene {
         WindowGroup {
-            AppRootView()
+            AppRootView(chatViewModel: chatViewModel)
                 .environment(container)
                 .onAppear {
                     appDelegate.container = container

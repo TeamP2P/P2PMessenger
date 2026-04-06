@@ -60,11 +60,11 @@ final class ChatViewModel: ObservableObject {
         isNetworkReady = false
     }
 
-    func sendMeshMessage() {
-        let text = meshInputText
-        networkService.sendToMesh(text: text)
+    func sendMeshMessage(_ text: String? = nil) {
+        let messageText = text ?? meshInputText
+        networkService.sendToMesh(text: messageText)
 
-        if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             meshInputText = ""
         }
     }
