@@ -45,6 +45,8 @@ final class RootGraph {
     @ObservationIgnored
     var chatsRootView: ChatsRootView
     @ObservationIgnored
+    var welcomeScreenView: WelcomeScreenView
+    @ObservationIgnored
     var appRootView: AppRootView
     
     
@@ -93,6 +95,7 @@ final class RootGraph {
         
         // Onboarding
         self.welcomeScreenVM = WelcomeScreenVM(permissionManager: PermissionManager(notification: notificationService))
+        self.welcomeScreenView = WelcomeScreenView(vm: welcomeScreenVM)
         
         self.appRootView = AppRootView(
             router: self.router,
@@ -100,8 +103,8 @@ final class RootGraph {
             chatsRootView: chatsRootView,
             commonChatRootView: commonChatRootView,
             settingsRootView: settingsRootView,
-            coordinator: coord
-
+            coordinator: coord,
+            welcomeScreenView: welcomeScreenView
         )
     }
     

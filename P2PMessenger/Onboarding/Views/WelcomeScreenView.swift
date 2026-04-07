@@ -90,7 +90,9 @@ struct WelcomeScreenView: View {
     }
 
     private var buttonSection: some View {
-        Button(action: {}) {
+        Button(action: {
+            vm.setOnboardingPassed()
+        }) {
             Text("Начнём!")
                 .frame(height: 60)
                 .frame(maxWidth: .infinity)
