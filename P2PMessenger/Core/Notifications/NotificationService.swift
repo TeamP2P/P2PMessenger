@@ -19,6 +19,16 @@ struct NotificationService: NotificationServiceProtocol {
             return false
         }
     }
+    
+    func isPermissionGranted() async -> Bool {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            return true
+        default:
+            return false
+        }
+    }
 
     func sendMessage(title: String, message: String, subtitle: String = "", userInfo: [AnyHashable: Any] = [:]) {
         let content = UNMutableNotificationContent()

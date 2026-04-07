@@ -1,31 +1,23 @@
 //
-//  ViewModel.swift
+//  BluetoothStatusViewModel.swift
 //  P2PMessenger
 //
 //  Created by Sergei on 2026/04/03.
 //
 
-import SwiftUI
-import Combine
+import Observation
 
-final class BluetoothStatusViewModel: ObservableObject {
-    
-    @Published var isBluetoothOff: Bool = true
+@MainActor
+@Observable
+final class BluetoothStatusViewModel {
     
     private let monitor: BluetoothMonitor
-    private var cancellables = Set<AnyCancellable>()
     
-    init(monitor: BluetoothMonitor = .shared) {
-        self.monitor = monitor
-        bindBluetoothState()
+    var isBluetoothOff: Bool {
+        !monitor.isBluetoothEnabled
     }
     
-    private func bindBluetoothState() {
-        monitor.$isBluetoothEnabled
-            .compactMap { !$0 }
-            .sink { [weak self] isEnabled in
-                self?.isBluetoothOff = isEnabled
-            }
-            .store(in: &cancellables)
+    init(monitor: BluetoothMonitor) {
+        self.monitor = monitor
     }
 }

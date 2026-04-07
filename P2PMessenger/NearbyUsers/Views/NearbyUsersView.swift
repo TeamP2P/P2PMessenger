@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct NearbyUsersView: View {
-    private var viewModel: NearbyUserViewModel
-    private let onUserButtonTap: () -> Void
+    let viewModel: NearbyUserViewModel
+    let onUserButtonTap: () -> Void
 
     init(viewModel: NearbyUserViewModel, onUserButtonTap: @escaping () -> Void) {
         self.viewModel = viewModel
@@ -124,16 +124,15 @@ private struct ScanningDotsView: View {
 
 // MARK: - Preview
 
-//#if DEBUG
-//#Preview {
-//    NavigationStack {
-//        NearbyUsersView(
-//            viewModel: {
-//                let vm = NearbyUserViewModel(coordinator: MPCNetworkService())
-//                return vm
-//            }(),
-//            onUserButtonTap: {}
-//        )
-//    }
-//}
-//#endif
+#if DEBUG
+#Preview {
+    NavigationStack {
+        NearbyUsersView(
+            viewModel: NearbyUserViewModel(
+                coordinator: PeerSessionCoordinator(networkService: MPCNetworkService())
+            ),
+            onUserButtonTap: {}
+        )
+    }
+}
+#endif

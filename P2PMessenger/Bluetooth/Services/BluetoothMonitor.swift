@@ -1,34 +1,31 @@
 //
-//  ModalViewNetworkError.swift
+//  BluetoothMonitor.swift
 //  P2PMessenger
 //
 //  Created by Sergei on 2026/04/03.
 //
 
 import CoreBluetooth
-import Combine
+import Observation
 
-final class BluetoothMonitor: NSObject, ObservableObject {
+@MainActor
+@Observable
+final class BluetoothMonitor: NSObject {
     
-    static let shared = BluetoothMonitor()
+    var isBluetoothEnabled: Bool = false
     
-    @Published var isBluetoothEnabled: Bool = false
-    
+    @ObservationIgnored
     private var centralManager: CBCentralManager!
     
-    private override init() {
+    override init() {
         super.init()
-        print("BluetoothMonitor init")
-        centralManager = CBCentralManager(delegate: self, queue: nil)
+        centralManager = CBCentralManager(delegate: self, queue: .main)
     }
     
 }
 
-extension BluetoothMonitor: CBCentralManagerDelegate {
+extension BluetoothMonitor: @preconcurrency CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        print("Bluetooth state:", central.state.rawValue)
-        DispatchQueue.main.async {
-            self.isBluetoothEnabled = (central.state == .poweredOn)
-        }
+        self.isBluetoothEnabled = (central.state == .poweredOn)
     }
 }

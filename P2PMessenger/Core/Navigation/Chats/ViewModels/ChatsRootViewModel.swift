@@ -7,13 +7,16 @@
 import SwiftUI
 
 @Observable
-final class ChatsRootViewModel{
+final class ChatsRootViewModel {
     let chatListViewModel: ChatsListViewModel
-
     let chatScreenViewModel: ChatScreenViewModel
+    let nearbyUserViewModel: NearbyUserViewModel
     
-    init(chatListViewModel: ChatsListViewModel, chatScreenViewModel: ChatScreenViewModel) {
+    init(chatListViewModel: ChatsListViewModel,
+         chatScreenViewModel: ChatScreenViewModel,
+         nearbyUserViewModel: NearbyUserViewModel) {
         self.chatListViewModel = chatListViewModel
         self.chatScreenViewModel = chatScreenViewModel
+        self.nearbyUserViewModel = nearbyUserViewModel
     }
 }

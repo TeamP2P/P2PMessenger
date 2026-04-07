@@ -6,7 +6,7 @@
 //
 import SwiftUI
 
-struct SettingsRootView: View {
+struct SettingsRootView: View { 
     @Bindable private var viewModel: SettingsViewModel
     
     init(viewModel: SettingsViewModel) {

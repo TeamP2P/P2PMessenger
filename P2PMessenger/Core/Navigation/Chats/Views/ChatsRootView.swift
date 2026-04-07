@@ -9,7 +9,6 @@ import SwiftUI
 struct ChatsRootView: View {
     private let viewModel: ChatsRootViewModel
     @Bindable private var router: ChatsRouter
-    @Environment(DependencyContainer.self) private var container
 
     init(viewModel: ChatsRootViewModel, router: ChatsRouter) {
         self.viewModel = viewModel
@@ -33,7 +32,8 @@ struct ChatsRootView: View {
                     
                 case .searchDialog:
                     VStack(spacing: 16) {
-                        NearbyUsersView(viewModel: container.nearbyUserViewModel, onUserButtonTap: { router.push(.addDialog) })
+                        NearbyUsersView(viewModel: viewModel.nearbyUserViewModel,
+                                        onUserButtonTap: {router.push(.addDialog)})
                     }
                     .navigationTitle("Люди рядом")
                     .navigationBarTitleDisplayMode(.inline)

@@ -10,7 +10,7 @@ import UserNotifications
 
 final class AppNotificationDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     
-    var container: DependencyContainer?
+    var container: RootGraph?
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         
