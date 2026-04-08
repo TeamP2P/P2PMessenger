@@ -75,10 +75,11 @@ final class RootGraph {
 
         // Chats
         self.chatsRootViewModel = ChatsRootViewModel(
-            chatListViewModel: ChatsListViewModel(
-                chats: ChatListPreviewFixtures.stubChats
+            chatListViewModel: ChatsListViewModel(coordinator: coord),
+            chatScreenViewModel: ChatScreenViewModel(
+                networkService: svc,
+                headerStyle: .group(title: String(localized: "Чат"), subtitle: "")
             ),
-            chatScreenViewModel: ChatPreviewFixtures.newChat,
             nearbyUserViewModel: nearbyUserViewModel,
             coordinator: coord
         )
