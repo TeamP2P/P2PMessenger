@@ -1,5 +1,7 @@
 import Foundation
 import MultipeerConnectivity
+import OSLog
+//import sys
 import UIKit
 
 protocol MPCNetworkService {
@@ -22,6 +24,7 @@ protocol MPCNetworkService {
 
 final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentityDelegate {
     weak var delegate: MPCNetworkServiceDelegate?
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "P2PMessenger", category: "MPCNetwork")
 
     private let identityProvider: LocalPeerIdentityProvider
     private let topologyCoordinator = MeshTopologyCoordinator()
@@ -97,6 +100,7 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
         guard !lifecycleState.hasStartedOnce else { return }
         lifecycleState.hasStartedOnce = true
         lifecycleState.isSuspended = false
+        logNetwork("startIfNeeded localUserID=\(localUserID) displayName=\(localPeer.displayName)")
         startTransport()
     }
 
@@ -110,6 +114,7 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
         lifecycleState.isSuspended = false
         recreateSession()
         clearTransientConnectionState()
+        logNetwork("resumeIfNeeded localUserID=\(localUserID)")
         startTransport()
     }
 
@@ -118,6 +123,7 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
         guard !lifecycleState.isSuspended else { return }
 
         lifecycleState.isSuspended = true
+        logNetwork("suspendForBackground connectedPeers=\(session.connectedPeers.count)")
         stopDiscovery()
 
         session.disconnect()
@@ -133,6 +139,7 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
         stopDiscovery()
         recreateSession()
         clearTransientConnectionState()
+        logNetwork("restartAfterIdentityChange newDisplayName=\(localPeer.displayName) groupEpoch=\(groupEpoch)")
         startTransport()
     }
 
@@ -213,6 +220,7 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
         browser.delegate = self
         browser.startBrowsingForPeers()
         self.browser = browser
+        logNetwork("startTransport serviceType=\(MPCNetworkConstants.serviceType) leader=\(currentLeaderID) clusterSize=\(currentClusterSize)")
 
         notifyLocalPeerChanged()
         publishFoundPeers()
@@ -223,6 +231,7 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
 
     private func stopDiscovery() {
         lifecycleState.isRunning = false
+        logNetwork("stopDiscovery connectedPeers=\(session.connectedPeers.count)")
 
         advertiser?.stopAdvertisingPeer()
         advertiser?.delegate = nil
@@ -260,6 +269,7 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
         advertiser.delegate = self
         advertiser.startAdvertisingPeer()
         self.advertiser = advertiser
+        logNetwork("startAdvertiser leader=\(currentLeaderID) clusterSize=\(currentClusterSize) epoch=\(groupEpoch)")
 
         advertiserState.lastAdvertisedLeaderID = currentLeaderID
         advertiserState.lastAdvertisedClusterSize = currentClusterSize
@@ -453,20 +463,27 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
     }
 
     func evaluateConnection(for peerStableID: String) {
-        switch topologyCoordinator.evaluateConnection(
+        let evaluation = topologyCoordinator.evaluateConnection(
             for: peerStableID,
             localUserID: localUserID,
             lifecycleState: lifecycleState,
             peerRegistry: peerRegistry,
             retryAfterByPeerID: currentRetryAfterByPeerID
-        ) {
+        )
+
+        switch evaluation {
         case .none:
+            if let state = peerRegistry.peerState(for: peerStableID) {
+                logNetwork("evaluateConnection none remoteID=\(peerStableID) remoteLeader=\(state.leaderID) remoteCluster=\(state.clusterSize) localLeader=\(currentLeaderID) localCluster=\(currentClusterSize)")
+            }
             return
 
         case .retry(let retryAt):
+            logNetwork("evaluateConnection retry remoteID=\(peerStableID) retryAt=\(retryAt.ISO8601Format())")
             scheduleRetry(for: peerStableID, at: retryAt)
 
         case .invite(let peerID):
+            logNetwork("evaluateConnection invite remoteID=\(peerStableID) peerDisplayName=\(peerID.displayName) connectedPeers=\(session.connectedPeers.count)")
             peerRegistry.markInvited(peerStableID)
             peerRegistry.markConnecting(peerStableID)
             publishConnectingPeers()
@@ -520,6 +537,10 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
 
     func refreshConnectedPeers() {
         let result = peerRegistry.refreshConnectedPeers(using: session.connectedPeers)
+        if result.connectedChanged || result.staleConnectingRemoved {
+            let connectedIDs = peerRegistry.connectedPeersSorted().map(\.id).joined(separator: ",")
+            logNetwork("refreshConnectedPeers connectedCount=\(session.connectedPeers.count) connectedChanged=\(result.connectedChanged) staleConnectingRemoved=\(result.staleConnectingRemoved) connectedIDs=[\(connectedIDs)]")
+        }
 
         if result.connectedChanged {
             publishConnectedPeers()
@@ -532,6 +553,11 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
     }
 
     func scheduleRetry(for peerStableID: String, at date: Date? = nil) {
+        if let date {
+            logNetwork("scheduleRetry remoteID=\(peerStableID) at=\(date.ISO8601Format())")
+        } else {
+            logNetwork("scheduleRetry remoteID=\(peerStableID) usingDefaultBackoff=\(MPCNetworkConstants.retryBackoff)")
+        }
         scheduler.scheduleRetry(
             for: peerStableID,
             at: date,
@@ -548,6 +574,7 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
     }
 
     func scheduleInviteExpiry(for peerStableID: String) {
+        logNetwork("scheduleInviteExpiry remoteID=\(peerStableID) after=\(MPCNetworkConstants.inviteReapTime)")
         scheduler.scheduleInviteExpiry(
             for: peerStableID,
             after: MPCNetworkConstants.inviteReapTime
@@ -557,6 +584,7 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
 
             self.peerRegistry.unmarkInvited(peerStableID)
             self.peerRegistry.unmarkConnecting(peerStableID)
+            self.logNetwork("inviteExpired remoteID=\(peerStableID)")
             self.publishConnectingPeers()
             self.scheduleRetry(for: peerStableID)
         }
@@ -612,5 +640,30 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
 
     func containsDiscoveredPeer(_ peerStableID: String) -> Bool {
         peerRegistry.peerState(for: peerStableID) != nil
+    }
+
+    func logNetwork(_ message: String) {
+#if DEBUG
+        let osVersion = UIDevice.current.systemVersion
+        let appBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        let userSuffix = String(localUserID.suffix(6))
+        let model = deviceModelIdentifier()
+        let prefix = "[ios=\(osVersion) model=\(model) app=\(appVersion)(\(appBuild)) user=\(userSuffix)]"
+        Self.logger.debug("\(prefix, privacy: .public) \(message, privacy: .public)")
+#endif
+    }
+
+    private func deviceModelIdentifier() -> String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+
+        let machine = withUnsafePointer(to: &systemInfo.machine) { pointer in
+            pointer.withMemoryRebound(to: CChar.self, capacity: 1) { cString in
+                String(cString: cString)
+            }
+        }
+
+        return machine
     }
 }

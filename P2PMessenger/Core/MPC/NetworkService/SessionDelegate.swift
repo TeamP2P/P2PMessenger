@@ -5,12 +5,15 @@ extension MPCNetworkServiceImpl: MCSessionDelegate {
     func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+            self.logNetwork("sessionStateChanged peer=\(peerID.displayName) state=\(state.rawValue) connectedPeers=\(session.connectedPeers.count)")
 
             guard let peerStableID = self.knownStableID(for: peerID) else {
                 if state == .connected || state == .connecting {
+                    self.logNetwork("sessionState unresolvedPeer marked peer=\(peerID.displayName) state=\(state.rawValue)")
                     self.markUnresolvedConnected(peerID)
                     self.sendHello(to: self.session.connectedPeers)
                 } else if state == .notConnected {
+                    self.logNetwork("sessionState unresolvedPeer removed peer=\(peerID.displayName)")
                     self.unmarkUnresolvedConnected(peerID)
                 }
                 self.refreshConnectedPeers()
@@ -19,6 +22,7 @@ extension MPCNetworkServiceImpl: MCSessionDelegate {
 
             switch state {
             case .connected:
+                self.logNetwork("sessionState connected remoteID=\(peerStableID)")
                 self.markPeerConnected(peerStableID)
                 self.unmarkUnresolvedConnected(peerID)
                 self.unmarkPeerConnecting(peerStableID)
@@ -33,11 +37,13 @@ extension MPCNetworkServiceImpl: MCSessionDelegate {
                 self.sendHello(to: self.session.connectedPeers)
 
             case .connecting:
+                self.logNetwork("sessionState connecting remoteID=\(peerStableID)")
                 self.unmarkUnresolvedConnected(peerID)
                 self.markPeerConnecting(peerStableID)
                 self.publishConnectingPeers()
 
             case .notConnected:
+                self.logNetwork("sessionState notConnected remoteID=\(peerStableID)")
                 self.unmarkUnresolvedConnected(peerID)
                 self.unmarkPeerConnected(peerStableID)
                 self.unmarkPeerConnecting(peerStableID)
@@ -51,6 +57,7 @@ extension MPCNetworkServiceImpl: MCSessionDelegate {
                 if self.lifecycleState.isRunning,
                    !self.lifecycleState.isSuspended,
                    self.containsDiscoveredPeer(peerStableID) {
+                    self.logNetwork("sessionState schedulingRetry remoteID=\(peerStableID)")
                     self.scheduleRetry(for: peerStableID)
                 }
 
@@ -62,6 +69,7 @@ extension MPCNetworkServiceImpl: MCSessionDelegate {
 
     func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
         if let packet = try? decoder.decode(WirePacketDTO.self, from: data) {
+            logNetwork("didReceive packet kind=\(packet.kind) fromPeer=\(peerID.displayName)")
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.handle(packet: packet, from: peerID)
@@ -70,10 +78,12 @@ extension MPCNetworkServiceImpl: MCSessionDelegate {
         }
 
         guard let wire = try? decoder.decode(WireMessageDTO.self, from: data) else {
+            logNetwork("didReceive decodeFailed fromPeer=\(peerID.displayName)")
             publishError(.transportFailure("Не удалось декодировать входящее сообщение."))
             return
         }
 
+        logNetwork("didReceive legacyWire fromPeer=\(peerID.displayName) senderID=\(wire.senderID)")
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.handleChat(wire, from: peerID)
@@ -102,6 +112,7 @@ extension MPCNetworkServiceImpl: MCSessionDelegate {
     }
 
     func handleHello(_ hello: HelloMessageDTO, from peerID: MCPeerID) {
+        logNetwork("handleHello senderID=\(hello.senderID) peer=\(peerID.displayName) leader=\(hello.leaderID) cluster=\(hello.clusterSize) epoch=\(hello.groupEpoch)")
         let info: [String: String] = [
             MPCNetworkConstants.discoveryUserIDKey: hello.senderID,
             MPCNetworkConstants.discoveryDisplayNameKey: hello.senderDisplayName,
@@ -123,6 +134,7 @@ extension MPCNetworkServiceImpl: MCSessionDelegate {
     }
 
     func handleChat(_ wire: WireMessageDTO, from peerID: MCPeerID) {
+        logNetwork("handleChat senderID=\(wire.senderID) recipientID=\(wire.recipientID ?? "mesh") fromPeer=\(peerID.displayName)")
         let senderInfo: [String: String] = [
             MPCNetworkConstants.discoveryUserIDKey: wire.senderID,
             MPCNetworkConstants.discoveryDisplayNameKey: wire.senderDisplayName,
@@ -173,6 +185,7 @@ extension MPCNetworkServiceImpl: MCSessionDelegate {
                  didReceive certificate: [Any]?,
                  fromPeer peerID: MCPeerID,
                  certificateHandler: @escaping (Bool) -> Void) {
+        logNetwork("certificateReceived peer=\(peerID.displayName) accepted=true")
         certificateHandler(true)
     }
     #endif
