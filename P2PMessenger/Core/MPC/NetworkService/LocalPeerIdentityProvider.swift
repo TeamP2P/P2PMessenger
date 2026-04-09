@@ -23,6 +23,7 @@ final class LocalPeerIdentityProvider: LocalPeerIdentityReading {
     private var profileStorage: UserProfileStorageProtocol
 
     let localUserID: String
+    private(set) var userDisplayName: String
     private(set) var peerID: MCPeerID
 
     private(set) var groupEpoch: Int {
@@ -32,7 +33,7 @@ final class LocalPeerIdentityProvider: LocalPeerIdentityReading {
     }
 
     var displayName: String {
-        peerID.displayName
+        userDisplayName
     }
 
     var localPeer: ChatPeer {
@@ -48,7 +49,13 @@ final class LocalPeerIdentityProvider: LocalPeerIdentityReading {
         ) ?? "Sirius"
 
         self.groupEpoch = profileStorage.groupEpoch
-        self.peerID = MCPeerID(displayName: initialDisplayName)
+        self.userDisplayName = initialDisplayName
+        self.peerID = MCPeerID(
+            displayName: Self.transportDisplayName(
+                from: initialDisplayName,
+                userID: localUserID
+            )
+        )
     }
 
     static func validatedDisplayName(_ rawValue: String) -> String? {
@@ -65,19 +72,54 @@ final class LocalPeerIdentityProvider: LocalPeerIdentityReading {
         return shortened
     }
 
+    static func transportDisplayName(from userDisplayName: String, userID: String) -> String {
+        let normalized = userDisplayName
+            .folding(options: [.diacriticInsensitive, .caseInsensitive, .widthInsensitive], locale: .current)
+
+        var result = ""
+        var previousWasSeparator = false
+
+        for scalar in normalized.unicodeScalars {
+            if CharacterSet.alphanumerics.contains(scalar), scalar.isASCII {
+                result.unicodeScalars.append(scalar)
+                previousWasSeparator = false
+                continue
+            }
+
+            if scalar == " " || scalar == "-" || scalar == "_" {
+                if !previousWasSeparator {
+                    result.append("-")
+                    previousWasSeparator = true
+                }
+            }
+        }
+
+        let trimmed = result.trimmingCharacters(in: CharacterSet(charactersIn: "-_"))
+        let base = String((trimmed.isEmpty ? "peer" : trimmed).prefix(18))
+        let compactID = userID.replacingOccurrences(of: "-", with: "")
+        let suffix = String(compactID.suffix(6))
+        return "\(base)-\(suffix)"
+    }
+
     func updateDisplayName(_ newName: String) -> LocalPeerIdentityUpdateResult {
         guard let validatedName = Self.validatedDisplayName(newName) else {
             return .invalidDisplayName
         }
 
-        guard validatedName != displayName else {
+        guard validatedName != userDisplayName else {
             return .unchanged
         }
 
         profileStorage.displayName = validatedName
 
         groupEpoch += 1
-        peerID = MCPeerID(displayName: validatedName)
+        userDisplayName = validatedName
+        peerID = MCPeerID(
+            displayName: Self.transportDisplayName(
+                from: validatedName,
+                userID: localUserID
+            )
+        )
 
         delegate?.identityProviderDidChangeIdentity()
 
