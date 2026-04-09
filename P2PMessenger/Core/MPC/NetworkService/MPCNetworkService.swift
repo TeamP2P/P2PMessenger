@@ -1,7 +1,6 @@
 import Foundation
 import MultipeerConnectivity
 import OSLog
-//import sys
 import UIKit
 
 protocol MPCNetworkService {
@@ -453,13 +452,18 @@ final class MPCNetworkServiceImpl: NSObject, MPCNetworkService, LocalPeerIdentit
         senderLeaderID: String,
         senderClusterSize: Int
     ) -> Bool {
-        topologyCoordinator.canAcceptInvitation(
+        let canAccept = topologyCoordinator.canAcceptInvitation(
             localUserID: localUserID,
             peerRegistry: peerRegistry,
             remoteID: remoteID,
             senderLeaderID: senderLeaderID,
             senderClusterSize: senderClusterSize
         )
+        if !canAccept {
+            let connectingIDs = peerRegistry.connectingPeerIDs.sorted().joined(separator: ",")
+            logNetwork("canAcceptInvitation denied remoteID=\(remoteID) senderLeader=\(senderLeaderID) senderCluster=\(senderClusterSize) localLeader=\(currentLeaderID) localCluster=\(currentClusterSize) connecting=[\(connectingIDs)]")
+        }
+        return canAccept
     }
 
     func evaluateConnection(for peerStableID: String) {

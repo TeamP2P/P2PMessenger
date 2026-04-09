@@ -49,6 +49,7 @@ struct MeshTopologyCoordinator {
         guard !peerRegistry.connectingPeerIDs.contains(remoteID) else { return false }
         guard !peerRegistry.incomingInvitationPeerIDs.contains(remoteID) else { return false }
         guard !peerRegistry.invitedPeerIDs.contains(remoteID) else { return false }
+        guard peerRegistry.connectingPeerIDs.isEmpty else { return false }
 
         let currentLeaderID = currentLeaderID(
             localUserID: localUserID,
@@ -92,6 +93,13 @@ struct MeshTopologyCoordinator {
     ) -> Bool {
         if peerRegistry.connectedPeerIDs.contains(remoteID) {
             return true
+        }
+
+        let hasOtherConnectingPeers = !peerRegistry.connectingPeerIDs
+            .subtracting([remoteID])
+            .isEmpty
+        if hasOtherConnectingPeers {
+            return false
         }
 
         let currentClusterSize = currentClusterSize(
