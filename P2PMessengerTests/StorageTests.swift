@@ -32,7 +32,7 @@ struct StorageTests {
         // Verify storage
         #expect(permissions.isLocalNetworkGranted == true)
         #expect(permissions.isNearbyGranted == true)
-        
+
         // Reset and verify
         permissions.isLocalNetworkGranted = false
         #expect(permissions.isLocalNetworkGranted == false)
