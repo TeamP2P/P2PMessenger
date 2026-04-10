@@ -84,6 +84,7 @@ struct WelcomeScreenView: View {
                 .foregroundStyle(.p2PDarkGray)
                 .frame(maxWidth: .infinity, alignment: .leading)
             TextField("enterYourName", text: $vm.userName)
+                .accessibilityIdentifier("welcome_username_textfield")
                 .frame(height: 60)
                 .accentColor(.p2PBlack)
                 .padding(.leading)
@@ -109,6 +110,7 @@ struct WelcomeScreenView: View {
             }
         )
         .disabled(!vm.canGoForward)
+        .accessibilityIdentifier("welcome_start_button")
     }
 }
 
