@@ -42,6 +42,9 @@ final class RootGraph {
 
     @MainActor
     init() {
+        if ProcessInfo.processInfo.arguments.contains("--reset-onboarding") {
+            UserDefaults.standard.removePersistentDomain(forName: Bundle.main.bundleIdentifier ?? "dev.p2pTeam.P2PMessenger")
+        }
         // Core Services
         let router = AppRouter()
         self.router = router

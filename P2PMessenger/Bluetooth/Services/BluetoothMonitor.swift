@@ -14,7 +14,10 @@ final class BluetoothMonitor: NSObject, BluetoothMonitorProtocol {
     private(set) var managerState: CBManagerState = .unknown
 
     var isBluetoothEnabled: Bool {
-        managerState == .poweredOn
+        if ProcessInfo.processInfo.arguments.contains("--reset-onboarding") {
+            return true
+        }
+        return managerState == .poweredOn
     }
 
     @ObservationIgnored
