@@ -168,7 +168,7 @@ jobs:
     runs-on: macos-latest
     needs: [test-unit]
     timeout-minutes: 20
-    # if: github.ref == 'refs/heads/main' 
+    if: github.ref == 'refs/heads/main' 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
